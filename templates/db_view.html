@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Database Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0a0c10;
+            --panel-bg: rgba(255, 255, 255, 0.05);
+            --accent-color: #00f2fe;
+            --accent-gradient: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            --text-primary: #ffffff;
+            --text-secondary: #b0b3b8;
+            --success: #00e676;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px;
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+            background: var(--accent-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-info {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            background: rgba(0, 242, 254, 0.08);
+            color: var(--accent-color);
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(0, 242, 254, 0.18);
+        }
+
+        .table-wrapper {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: rgba(0, 242, 254, 0.08);
+        }
+
+        th {
+            padding: 14px 20px;
+            text-align: left;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--accent-color);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        td {
+            padding: 12px 20px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        tr:hover td {
+            background: rgba(0, 242, 254, 0.03);
+            color: var(--text-primary);
+        }
+
+        td:nth-child(3),
+        td:nth-child(4),
+        td:nth-child(5),
+        td:nth-child(6) {
+            font-family: 'Courier New', monospace;
+            text-align: right;
+        }
+
+        th:nth-child(3),
+        th:nth-child(4),
+        th:nth-child(5),
+        th:nth-child(6) {
+            text-align: right;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .row-count {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(0, 230, 118, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div>
+            <h1>📊 Database Viewer</h1>
+            <p class="header-info" style="margin-top: 6px;">
+                Traffic data logged every 10 seconds ·
+                <span class="row-count">{{ data|length }} rows</span>
+            </p>
+        </div>
+        <a href="/" class="back-btn">← Back to Dashboard</a>
+    </div>
+
+    <div class="table-wrapper">
+        {% if data %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Timestamp</th>
+                    <th>Vehicles</th>
+                    <th>Avg Confidence</th>
+                    <th>Intensity</th>
+                    <th>Congestion %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    <td>{{ row.id }}</td>
+                    <td>{{ row.timestamp }}</td>
+                    <td>{{ row.vehicles_count }}</td>
+                    <td>{{ "%.2f"|format(row.avg_confidence) }}%</td>
+                    <td>{{ "%.4f"|format(row.traffic_intensity) }} v/s</td>
+                    <td>{{ "%.1f"|format(row.congestion_percentage|default(0)) }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">No data logged yet. The system logs every 10 seconds.</div>
+        {% endif %}
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,1362 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<title>TrafficMind AI — Smart Traffic Management System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cyan:#00e5ff;--cyan-dim:rgba(0,229,255,0.12);--cyan-border:rgba(0,229,255,0.28);
+  --green:#00ff88;--green-dim:rgba(0,255,136,0.1);
+  --amber:#ffb300;--amber-dim:rgba(255,179,0,0.12);
+  --red:#ff4444;--red-dim:rgba(255,68,68,0.12);
+  --purple:#b464ff;--purple-dim:rgba(180,100,255,0.12);
+  --bg:#07090f;--bg2:#0c1018;--bg3:#111827;
+  --text:#e2e8f0;--text-muted:#4a5568;--text-dim:#94a3b8;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.1);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.025) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* HEADER */
+.header{background:rgba(7,9,15,0.95);border-bottom:1px solid var(--cyan-border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(16px)}
+.logo{display:flex;align-items:center;gap:14px}
+.logo-box{width:34px;height:34px;border:1.5px solid var(--cyan);border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--cyan-dim)}
+.logo-box svg{width:16px;height:16px}
+.logo-text .title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;letter-spacing:2.5px;color:var(--cyan);text-transform:uppercase}
+.logo-text .sub{font-size:10px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-top:1px}
+.header-right{display:flex;align-items:center;gap:16px}
+.status-pill{display:flex;align-items:center;gap:6px;background:var(--green-dim);border:1px solid rgba(0,255,136,0.2);border-radius:20px;padding:5px 12px;font-size:10px;font-weight:500;color:var(--green);letter-spacing:0.5px;text-transform:uppercase}
+.status-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse-g 2s infinite}
+@keyframes pulse-g{0%,100%{box-shadow:0 0 0 0 rgba(0,255,136,.5)}50%{box-shadow:0 0 0 5px rgba(0,255,136,0)}}
+.clock{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim)}
+
+/* NAV */
+.nav{display:flex;gap:1px;padding:0 28px;background:var(--bg2);border-bottom:1px solid var(--border)}
+.tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;padding:11px 18px;cursor:pointer;transition:all .2s}
+.tab:hover{color:var(--text-dim)}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);background:rgba(0,229,255,0.03)}
+
+/* PANELS */
+.content{padding:20px 28px;flex:1}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:13px 15px;position:relative;overflow:hidden;transition:border-color .2s}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.c::before{background:var(--cyan)}.kpi.g::before{background:var(--green)}
+.kpi.a::before{background:var(--amber)}.kpi.r::before{background:var(--red)}
+.kpi.p::before{background:var(--purple)}
+.kpi:hover{border-color:var(--border2)}
+.kpi-label{font-size:9px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:7px}
+.kpi-val{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;line-height:1}
+.kpi.c .kpi-val{color:var(--cyan)}.kpi.g .kpi-val{color:var(--green)}
+.kpi.a .kpi-val{color:var(--amber)}.kpi.r .kpi-val{color:var(--red)}
+.kpi.p .kpi-val{color:var(--purple)}
+.kpi-unit{font-size:12px;font-weight:400;opacity:.65}
+.kpi-delta{font-size:10px;margin-top:4px;color:var(--text-muted)}
+
+.main-grid{display:grid;grid-template-columns:1fr 320px;gap:16px;margin-bottom:16px}
+
+/* PANEL */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:11px;overflow:hidden}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.015)}
+.pt{font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--cyan);display:flex;align-items:center;gap:7px}
+.pt-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.badge{font-family:'JetBrains Mono',monospace;font-size:9px;background:var(--cyan-dim);border:1px solid var(--cyan-border);color:var(--cyan);border-radius:4px;padding:3px 7px;letter-spacing:.5px}
+.badge.green{background:var(--green-dim);border-color:rgba(0,255,136,.2);color:var(--green)}
+.badge.amber{background:var(--amber-dim);border-color:rgba(255,179,0,.2);color:var(--amber)}
+.badge.red{background:var(--red-dim);border-color:rgba(255,68,68,.2);color:var(--red)}
+
+/* VIDEO */
+.video-wrap{padding:14px;position:relative}
+.video-inner{background:#000;border:1px solid var(--border);border-radius:8px;aspect-ratio:16/9;overflow:hidden;position:relative}
+.video-inner img{width:100%;height:100%;object-fit:cover;display:block}
+.vid-badges{display:flex;gap:7px;margin-top:8px;flex-wrap:wrap}
+
+/* CONGESTION BAR */
+.cong-section{padding:12px 16px;border-top:1px solid var(--border)}
+.cong-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.cong-label{font-size:9px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted)}
+.cong-val{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:500}
+.bar-bg{background:rgba(255,255,255,.05);border-radius:4px;height:7px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .8s cubic-bezier(.4,0,.2,1),background .8s}
+.bar-ticks{display:flex;justify-content:space-between;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted)}
+
+/* DETECTION LIST */
+.det-list{padding:8px 0}
+.det-item{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--border);transition:background .15s}
+.det-item:last-child{border-bottom:none}
+.det-item:hover{background:rgba(255,255,255,.015)}
+.det-left{display:flex;align-items:center;gap:10px}
+.det-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.det-name{font-size:12px;color:var(--text-dim)}
+.det-bar-wrap{height:2px;width:90px;background:rgba(255,255,255,.05);border-radius:1px;margin-top:3px}
+.det-bar{height:100%;border-radius:1px;transition:width .7s}
+.det-count{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700}
+
+/* RL PANEL */
+.rl-section{padding:14px 16px;border-top:1px solid var(--border)}
+.rl-phase{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan);margin-bottom:8px;padding:7px 10px;background:var(--cyan-dim);border:1px solid var(--cyan-border);border-radius:6px}
+.q-bars{display:flex;gap:6px;margin-top:8px}
+.q-bar-col{flex:1;text-align:center}
+.q-bar-bg{background:rgba(255,255,255,.05);border-radius:3px;height:48px;display:flex;align-items:flex-end;overflow:hidden}
+.q-bar-fill{width:100%;border-radius:3px 3px 0 0;transition:height .6s}
+.q-bar-label{font-size:9px;color:var(--text-muted);margin-top:4px;font-family:'JetBrains Mono',monospace}
+
+/* ALERT BOX */
+.alert-box{padding:12px 16px;border-top:1px solid var(--border)}
+.alert-inner{display:flex;gap:10px;padding:10px 12px;border-radius:7px;border:1px solid}
+
+/* CHARTS */
+.charts-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;margin-bottom:16px}
+.chart-wrap{padding:14px;position:relative}
+
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:var(--border)}
+.stat-cell{background:var(--bg2);padding:14px 18px}
+.stat-num{font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;margin-top:5px}
+
+/* DATABASE */
+.db-toolbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:rgba(255,255,255,.015);border-bottom:1px solid var(--border)}
+.db-input{flex:1;max-width:220px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);outline:none}
+.db-input:focus{border-color:var(--cyan-border)}
+.db-input::placeholder{color:var(--text-muted)}
+.db-btn{background:var(--cyan-dim);border:1px solid var(--cyan-border);border-radius:6px;color:var(--cyan);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:600;letter-spacing:.5px;padding:5px 12px;cursor:pointer;text-transform:uppercase;transition:all .15s}
+.db-btn:hover{background:rgba(0,229,255,.2)}
+.db-count{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted)}
+.db-count span{color:var(--cyan)}
+table{width:100%;border-collapse:collapse}
+th{font-family:'Rajdhani',sans-serif;font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);padding:9px 16px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg2)}
+td{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.03)}
+tr:hover td{background:rgba(255,255,255,.015)}
+.pill{display:inline-block;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:500}
+.pill.low{background:var(--green-dim);color:var(--green)}.pill.med{background:var(--amber-dim);color:var(--amber)}.pill.high{background:var(--red-dim);color:var(--red)}
+
+/* ALERTS TAB */
+.alerts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.alert-scroll{max-height:360px;overflow-y:auto}
+.alert-item{display:flex;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border);animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.a-bar{width:3px;border-radius:2px;flex-shrink:0;margin-top:2px}
+.a-title{font-size:11px;font-weight:500;margin-bottom:2px}
+.a-desc{font-size:10px;color:var(--text-muted);line-height:1.4}
+.a-time{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted);flex-shrink:0;margin-top:2px}
+.opt-item{display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)}
+.opt-icon{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.opt-title{font-size:11px;font-weight:500;color:var(--text-dim);margin-bottom:2px}
+.opt-desc{font-size:10px;color:var(--text-muted);line-height:1.4}
+
+/* FOOTER */
+footer{text-align:center;padding:14px 28px;border-top:1px solid var(--border);font-size:10px;color:var(--text-muted);letter-spacing:.5px}
+
+/* EMAIL ALERTS PANEL */
+.ea-section{margin-top:16px}
+.ea-toggle-row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.ea-toggle{position:relative;display:inline-block;width:34px;height:18px;flex-shrink:0}
+.ea-toggle input{opacity:0;width:0;height:0}
+.ea-slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,.08);border-radius:9px;transition:.2s}
+.ea-slider::before{content:'';position:absolute;height:12px;width:12px;left:3px;bottom:3px;background:#64748b;border-radius:50%;transition:.2s}
+.ea-toggle input:checked+.ea-slider{background:rgba(0,229,255,.25);border:1px solid var(--cyan-border)}
+.ea-toggle input:checked+.ea-slider::before{transform:translateX(16px);background:var(--cyan)}
+.ea-form{padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ea-field{display:flex;flex-direction:column;gap:4px}
+.ea-field.full{grid-column:1/-1}
+.ea-label{font-size:9px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted)}
+.ea-input{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);outline:none;transition:border-color .15s;width:100%}
+.ea-input:focus{border-color:var(--cyan-border)}
+.ea-input::placeholder{color:var(--text-muted)}
+.ea-btn{background:var(--cyan-dim);border:1px solid var(--cyan-border);border-radius:6px;color:var(--cyan);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:600;letter-spacing:.5px;padding:6px 14px;cursor:pointer;text-transform:uppercase;transition:all .15s;white-space:nowrap}
+.ea-btn:hover:not(:disabled){background:rgba(0,229,255,.2)}
+.ea-btn:disabled{opacity:.4;cursor:not-allowed}
+.ea-btn.amber{background:var(--amber-dim);border-color:rgba(255,179,0,.3);color:var(--amber)}
+.ea-btn.amber:hover:not(:disabled){background:rgba(255,179,0,.2)}
+.ea-pw-wrap{position:relative;display:flex;align-items:center}
+.ea-pw-wrap .ea-input{padding-right:28px}
+.ea-pw-eye{position:absolute;right:8px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:0;line-height:1}
+.ea-status{font-size:10px;font-family:'JetBrains Mono',monospace;min-height:14px;margin:0 16px 10px}
+.ea-hist-wrap{padding:0 16px 14px}
+.ea-hist-title{font-family:'Rajdhani',sans-serif;font-size:9px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+.ea-hist-table{width:100%;border-collapse:collapse;font-size:10px}
+.ea-hist-table th{font-family:'Rajdhani',sans-serif;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)}
+.ea-hist-table td{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.02)}
+.ea-hist-table tr:hover td{background:rgba(255,255,255,.01)}
+
+/* VIDEO SOURCE MANAGER */
+.vsm{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px}
+.vsm-hdr{display:flex;align-items:center;gap:10px;padding:7px 0;cursor:pointer;user-select:none}
+.vsm-title{font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);transition:color .15s}
+.vsm-hdr:hover .vsm-title{color:var(--text-dim)}
+.vsm-cur{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--cyan);background:var(--cyan-dim);border:1px solid var(--cyan-border);border-radius:4px;padding:2px 8px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vsm-arrow{font-size:9px;color:var(--text-muted);margin-left:auto;transition:transform .2s;flex-shrink:0}
+.vsm-arrow.open{transform:rotate(180deg)}
+.vsm-body{padding:10px 0 14px;display:grid;grid-template-columns:1fr 200px;gap:20px}
+.vsm-tabs{display:flex;gap:1px;margin-bottom:10px}
+.vsm-tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;cursor:pointer;transition:all .2s}
+.vsm-tab:hover{color:var(--text-dim)}
+.vsm-tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+.vsm-pane{display:none}.vsm-pane.active{display:block}
+.vsm-input{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);outline:none;transition:border-color .15s}
+.vsm-input:focus{border-color:var(--cyan-border)}
+.vsm-input::placeholder{color:var(--text-muted)}
+.vsm-btn{background:var(--cyan-dim);border:1px solid var(--cyan-border);border-radius:6px;color:var(--cyan);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:600;letter-spacing:.5px;padding:5px 14px;cursor:pointer;text-transform:uppercase;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.vsm-btn:hover:not(:disabled){background:rgba(0,229,255,.2)}
+.vsm-btn:disabled{opacity:.4;cursor:not-allowed}
+.vsm-status{font-size:10px;margin-top:5px;min-height:14px;font-family:'JetBrains Mono',monospace}
+.vsm-drop{border:1.5px dashed var(--border2);border-radius:7px;padding:14px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:7px}
+.vsm-drop:hover,.vsm-drop.drag-over{border-color:var(--cyan-border);background:var(--cyan-dim)}
+.vsm-drop-text{font-size:11px;color:var(--text-dim)}
+.vsm-drop-hint{font-size:9px;color:var(--text-muted);margin-top:2px;opacity:.7}
+.vsm-hist-title{font-family:'Rajdhani',sans-serif;font-size:9px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:7px}
+.vsm-hist-item{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted)}
+.vsm-hist-item:last-child{border-bottom:none}
+.vsm-type-pill{font-size:8px;padding:1px 5px;border-radius:3px;text-transform:uppercase;font-weight:600;flex-shrink:0}
+.vsm-type-file{background:var(--cyan-dim);color:var(--cyan);border:1px solid var(--cyan-border)}
+.vsm-type-youtube{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,68,68,.2)}
+.vsm-type-webcam{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,136,.2)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-box">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="1" y="7" width="3" height="8" rx="1" fill="#00e5ff"/>
+        <rect x="6" y="4" width="3" height="11" rx="1" fill="#00e5ff" opacity=".7"/>
+        <rect x="11" y="1" width="3" height="14" rx="1" fill="#00e5ff" opacity=".4"/>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <div class="title">TrafficMind AI</div>
+      <div class="sub">Real-Time Intelligent Traffic Monitoring &amp; Optimization</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill"><div class="status-dot"></div>System Online</div>
+    {% if current_user.role == 'admin' %}
+      <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;padding:4px 10px;border-radius:4px;border:1px solid rgba(180,100,255,0.4);background:rgba(180,100,255,0.15);color:#b464ff;text-transform:uppercase">ADMIN</span>
+      <a href="{{ url_for('auth.admin_users') }}" style="font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:5px 12px;border-radius:6px;border:1px solid var(--border);color:var(--text-dim);text-decoration:none;transition:all .15s" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">⚙ Users</a>
+    {% else %}
+      <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;padding:4px 10px;border-radius:4px;border:1px solid var(--cyan-border);background:var(--cyan-dim);color:var(--cyan);text-transform:uppercase">OBSERVER</span>
+    {% endif %}
+    {% if current_user.role == 'admin' %}
+    <button id="report-btn" onclick="generateReport()" title="Download PDF session report" style="font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:5px 14px;border-radius:6px;border:1px solid rgba(0,229,255,.3);background:rgba(0,229,255,.1);color:var(--cyan);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 1h5.5L10 3.5V11H2V1z" stroke="#00e5ff" stroke-width="1.1" fill="none"/><path d="M7 1v3h3" stroke="#00e5ff" stroke-width="1.1"/><line x1="4" y1="6" x2="8" y2="6" stroke="#00e5ff" stroke-width="1.1"/><line x1="4" y1="8" x2="8" y2="8" stroke="#00e5ff" stroke-width="1.1"/></svg>
+      Report
+    </button>
+    {% endif %}
+    <a href="{{ url_for('auth.logout') }}" style="font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:5px 12px;border-radius:6px;border:1px solid rgba(255,68,68,.25);background:rgba(255,68,68,.08);color:#ff4444;text-decoration:none;transition:all .15s">Logout</a>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="tab active" onclick="switchTab('dashboard',this)">Dashboard</button>
+  {% if current_user.role == 'admin' %}
+  <button class="tab" onclick="switchTab('optimizer',this)">RL Optimizer</button>
+  {% endif %}
+  <button class="tab" onclick="switchTab('analytics',this)">Analytics</button>
+  {% if current_user.role == 'admin' %}
+  <button class="tab" onclick="switchTab('database',this)">Database</button>
+  {% endif %}
+  <button class="tab" onclick="switchTab('alerts',this)">AI Alerts</button>
+</nav>
+
+{% if current_user.role == 'admin' %}
+<!-- VIDEO SOURCE MANAGER (admin only) -->
+<div class="vsm" id="vsm-panel">
+  <div class="vsm-hdr" onclick="toggleVSM()">
+    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style="flex-shrink:0;opacity:.5"><rect x="1" y="2.5" width="10" height="7" rx="1.2" stroke="#94a3b8" stroke-width="1.2"/><circle cx="6" cy="6" r="1.6" fill="#94a3b8"/></svg>
+    <span class="vsm-title">Video Source</span>
+    <div class="vsm-cur"><span id="vsm-dot" style="width:5px;height:5px;border-radius:50%;background:var(--cyan);flex-shrink:0"></span><span id="vsm-label">Loading...</span></div>
+    <span class="vsm-arrow" id="vsm-arrow">&#9662;</span>
+  </div>
+  <div id="vsm-body" style="display:none">
+    <div class="vsm-body">
+      <div>
+        <div class="vsm-tabs">
+          <button class="vsm-tab active" onclick="vsmSwitchTab('file',this)">Local File</button>
+          <button class="vsm-tab" onclick="vsmSwitchTab('youtube',this)">YouTube URL</button>
+          <button class="vsm-tab" onclick="vsmSwitchTab('webcam',this)">Webcam</button>
+        </div>
+
+        <!-- File pane -->
+        <div class="vsm-pane active" id="vsm-pane-file">
+          <div class="vsm-drop" id="vsm-drop" onclick="document.getElementById('vsm-file-input').click()"
+               ondragover="vsmDragOver(event)" ondragleave="vsmDragLeave(event)" ondrop="vsmDrop(event)">
+            <div class="vsm-drop-text" id="vsm-drop-text">Drop video file here or click to browse</div>
+            <div class="vsm-drop-hint">.mp4 .avi .mov .mkv .webm &mdash; max 500 MB</div>
+          </div>
+          <input type="file" id="vsm-file-input" accept=".mp4,.avi,.mov,.mkv,.webm" style="display:none" onchange="vsmFileSelected(this)">
+          <div style="display:flex;gap:6px;align-items:center">
+            <input class="vsm-input" type="text" id="vsm-file-path" placeholder="Or enter absolute file path..." style="flex:1">
+            <button class="vsm-btn" onclick="vsmSwitchFile()">Switch</button>
+          </div>
+          <div class="vsm-status" id="vsm-status-file"></div>
+        </div>
+
+        <!-- YouTube pane -->
+        <div class="vsm-pane" id="vsm-pane-youtube">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+            <input class="vsm-input" type="text" id="vsm-yt-url" placeholder="https://www.youtube.com/watch?v=..." style="flex:1">
+            <button class="vsm-btn" onclick="vsmSwitchYT()">Connect</button>
+          </div>
+          <div style="font-size:9px;color:var(--text-muted)">Requires yt-dlp installed in the Python environment.</div>
+          <div class="vsm-status" id="vsm-status-yt"></div>
+        </div>
+
+        <!-- Webcam pane -->
+        <div class="vsm-pane" id="vsm-pane-webcam">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+            <select class="vsm-input" id="vsm-cam-idx" style="width:130px">
+              <option value="0">Camera #0 (default)</option>
+              <option value="1">Camera #1</option>
+              <option value="2">Camera #2</option>
+            </select>
+            <button class="vsm-btn" onclick="vsmSwitchWebcam()">Connect</button>
+          </div>
+          <div style="font-size:9px;color:var(--text-muted)">Select the camera index (0 = system default webcam).</div>
+          <div class="vsm-status" id="vsm-status-webcam"></div>
+        </div>
+      </div>
+
+      <!-- Recent history -->
+      <div>
+        <div class="vsm-hist-title">Recent Sources</div>
+        <div id="vsm-history"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted)">Loading...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ═══════════════════════ DASHBOARD ═══════════════════════ -->
+<div class="tab-panel active" id="tab-dashboard">
+<div class="content">
+  <div class="kpi-row">
+    <div class="kpi c"><div class="kpi-label">Total Vehicles</div><div class="kpi-val" id="k-vehicles">—</div><div class="kpi-delta" id="k-v-d">live</div></div>
+    <div class="kpi r"><div class="kpi-label">Congestion</div><div class="kpi-val" id="k-cong">—<span class="kpi-unit">%</span></div><div class="kpi-delta" id="k-c-d">—</div></div>
+    <div class="kpi g"><div class="kpi-label">Pedestrians</div><div class="kpi-val" id="k-ped">—</div><div class="kpi-delta">detected</div></div>
+    <div class="kpi a"><div class="kpi-label">Intensity</div><div class="kpi-val" id="k-int">—<span class="kpi-unit"> v/s</span></div><div class="kpi-delta" id="k-int-d">—</div></div>
+    <div class="kpi p"><div class="kpi-label">DB Records</div><div class="kpi-val" id="k-db">—</div><div class="kpi-delta">↑ +1 / 10s</div></div>
+  </div>
+
+  <div class="main-grid">
+    <!-- VIDEO -->
+    <div class="panel">
+      <div class="ph">
+        <div class="pt"><div class="pt-dot"></div>Live Video Feed</div>
+        <div style="display:flex;gap:7px">
+          <span class="badge">640px YOLOv8</span>
+          <span class="badge">SKIP-3</span>
+          <span class="badge green">LIVE</span>
+        </div>
+      </div>
+      <div class="video-wrap">
+        <div class="video-inner">
+          <img src="/video_feed" alt="Live feed" onerror="this.style.display='none'">
+        </div>
+        <div class="vid-badges">
+          <span class="badge green" id="b-conf">Confidence: —</span>
+          <span class="badge amber">YOLOv8 · yolo26m.pt</span>
+          <span class="badge">Piața Romană, BUC</span>
+        </div>
+      </div>
+      <div class="cong-section">
+        <div class="cong-top">
+          <span class="cong-label">Congestion Level</span>
+          <span class="cong-val" id="cong-val" style="color:var(--amber)">—%</span>
+        </div>
+        <div class="bar-bg"><div class="bar-fill" id="cong-bar" style="width:0%"></div></div>
+        <div class="bar-ticks"><span>0 — Free</span><span>50 — Moderate</span><span>100 — Gridlock</span></div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <!-- DETECTION -->
+      <div class="panel">
+        <div class="ph">
+          <div class="pt"><div class="pt-dot"></div>Object Detection</div>
+          <span class="badge">TRACKING</span>
+        </div>
+        <div class="det-list">
+          <div class="det-item">
+            <div class="det-left">
+              <div class="det-icon" style="background:var(--cyan-dim)">🚗</div>
+              <div>
+                <div class="det-name">Passenger Cars</div>
+                <div class="det-bar-wrap"><div class="det-bar" id="bar-car" style="background:var(--cyan);width:0%"></div></div>
+              </div>
+            </div>
+            <div class="det-count" style="color:var(--cyan)" id="cnt-car">—</div>
+          </div>
+          <div class="det-item">
+            <div class="det-left">
+              <div class="det-icon" style="background:var(--amber-dim)">🏍</div>
+              <div>
+                <div class="det-name">Motorbikes</div>
+                <div class="det-bar-wrap"><div class="det-bar" id="bar-moto" style="background:var(--amber);width:0%"></div></div>
+              </div>
+            </div>
+            <div class="det-count" style="color:var(--amber)" id="cnt-moto">—</div>
+          </div>
+          <div class="det-item">
+            <div class="det-left">
+              <div class="det-icon" style="background:var(--purple-dim)">🚶</div>
+              <div>
+                <div class="det-name">Pedestrians</div>
+                <div class="det-bar-wrap"><div class="det-bar" id="bar-ped" style="background:var(--purple);width:0%"></div></div>
+              </div>
+            </div>
+            <div class="det-count" style="color:var(--purple)" id="cnt-ped">—</div>
+          </div>
+        </div>
+        <div style="padding:8px 16px;border-top:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted)">
+          DB: <span id="db-status-text" style="color:var(--green)">checking...</span>
+        </div>
+      </div>
+
+      <!-- RL SIGNAL / FLOW PANEL (content switches on scene_type) -->
+      <div class="panel">
+        <div class="ph">
+          <div class="pt"><div class="pt-dot" style="background:var(--amber);animation:blink .8s infinite"></div>RL Signal</div>
+          <div style="display:flex;gap:5px">
+            <span class="badge" id="scene-badge" title="Scene type detected from video motion analysis">ANALYZING...</span>
+            <span class="badge amber" id="rl-badge">COMPUTING</span>
+          </div>
+        </div>
+
+        <!-- Intersection mode: RL phase + N/S/E/W queues (default) -->
+        <div id="rl-content-intersection" class="rl-section">
+          <div class="rl-phase" id="rl-phase">Initializing Q-agent...</div>
+          <div id="rl-analyzing-hint" style="font-size:9px;color:var(--amber);margin-top:5px;display:none">
+            ⟳ Scene analysis in progress...
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">
+            <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">N queue</div>
+            <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">S queue</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--cyan)" id="q-north">—</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--cyan)" id="q-south">—</div>
+            <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">E queue</div>
+            <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">W queue</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--amber)" id="q-east">—</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--amber)" id="q-west">—</div>
+          </div>
+        </div>
+
+        <!-- Single-flow mode: simple congestion summary, RL inactive -->
+        <div id="rl-content-flow" class="rl-section" style="display:none">
+          <div class="rl-phase" style="color:var(--amber);border-color:rgba(255,179,0,0.3);background:var(--amber-dim)">
+            ⚡ Single-flow road — RL signal control inactive
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
+            <div>
+              <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Vehicles</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--cyan)" id="flow-vehicles">—</div>
+            </div>
+            <div>
+              <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Congestion</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--amber)" id="flow-congestion">—%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════ RL OPTIMIZER ═══════════════════════ -->
+<div class="tab-panel" id="tab-optimizer">
+<div class="content">
+  <!-- Scene-type context banner — shown only when RL is inactive on current source -->
+  <div id="rl-optimizer-banner" style="display:none;margin-bottom:14px">
+    <div style="padding:10px 14px;border-radius:8px;border:1px solid rgba(255,179,0,0.3);background:var(--amber-dim);display:flex;align-items:center;gap:8px;font-size:11px;color:var(--amber)">
+      <span>&#9889;</span>
+      <span>RL optimizer inactive on current source &mdash; charts below show offline training results</span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <!-- Q-Values chart -->
+    <div class="panel">
+      <div class="ph"><div class="pt"><div class="pt-dot"></div>Q-Values per Phase</div><span class="badge" id="eps-badge">ε: —</span></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chart-qvals"></canvas></div>
+    </div>
+    <!-- Reward history -->
+    <div class="panel">
+      <div class="ph"><div class="pt"><div class="pt-dot"></div>Reward convergence</div><span class="badge" id="ep-badge">0 episodes</span></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chart-reward"></canvas></div>
+    </div>
+  </div>
+  <!-- Benchmark results -->
+  <div class="panel" style="margin-bottom:14px">
+    <div class="ph"><div class="pt"><div class="pt-dot" style="background:var(--green)"></div>Benchmark — RL vs Fixed-Time Controller</div><span class="badge green">RESULTS</span></div>
+    <div id="benchmark-panel" style="padding:16px">
+      <div style="font-size:11px;color:var(--text-muted)">Run <code style="color:var(--cyan)">python q_agent.py --mode benchmark</code> to generate results...</div>
+    </div>
+  </div>
+  <!-- Phase diagram -->
+  <div class="panel">
+    <div class="ph"><div class="pt"><div class="pt-dot"></div>Signal Phase Diagram</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:var(--border)">
+      <div id="phase-0" style="background:var(--bg2);padding:14px 16px;transition:background .3s">
+        <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Phase 0</div>
+        <div style="font-size:12px;font-weight:500;color:var(--green)">N–S Green</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">E–W Red</div>
+      </div>
+      <div id="phase-1" style="background:var(--bg2);padding:14px 16px;transition:background .3s">
+        <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Phase 1</div>
+        <div style="font-size:12px;font-weight:500;color:var(--red)">N–S Red</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">E–W Green</div>
+      </div>
+      <div id="phase-2" style="background:var(--bg2);padding:14px 16px;transition:background .3s">
+        <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Phase 2</div>
+        <div style="font-size:12px;font-weight:500;color:var(--green)">N–S Left turn</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Protected</div>
+      </div>
+      <div id="phase-3" style="background:var(--bg2);padding:14px 16px;transition:background .3s">
+        <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Phase 3</div>
+        <div style="font-size:12px;font-weight:500;color:var(--amber)">E–W Left turn</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Protected</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════ ANALYTICS ═══════════════════════ -->
+<div class="tab-panel" id="tab-analytics">
+<div class="content">
+  <div class="charts-grid">
+    <div class="panel">
+      <div class="ph"><div class="pt"><div class="pt-dot"></div>Congestion Timeline (last 60s)</div></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chart-timeline"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div class="pt"><div class="pt-dot"></div>Vehicle Mix</div></div>
+      <div class="chart-wrap" style="height:220px;display:flex;align-items:center;justify-content:center"><canvas id="chart-mix"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div class="pt"><div class="pt-dot"></div>Intensity</div></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chart-intens"></canvas></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><div class="pt"><div class="pt-dot"></div>Session Statistics</div></div>
+    <div class="stats-grid">
+      <div class="stat-cell"><div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted)">Peak Congestion</div><div class="stat-num" style="color:var(--red)" id="s-peak">—%</div></div>
+      <div class="stat-cell"><div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted)">Avg Congestion</div><div class="stat-num" style="color:var(--amber)" id="s-avg">—%</div></div>
+      <div class="stat-cell"><div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted)">Total Vehicles</div><div class="stat-num" style="color:var(--cyan)" id="s-total">—</div></div>
+      <div class="stat-cell"><div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted)">Observations</div><div class="stat-num" style="color:#4488ff" id="s-obs">—</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════ DATABASE ═══════════════════════ -->
+<div class="tab-panel" id="tab-database">
+<div class="content">
+  <div class="panel">
+    <div class="ph"><div class="pt"><div class="pt-dot"></div>Traffic Log Database</div><span class="badge">traffic_logs.db · SQLite</span></div>
+    <div class="db-toolbar">
+      <input class="db-input" type="text" placeholder="Filter by date, vehicles, congestion..." id="db-filter" oninput="filterDB()">
+      {% if current_user.role == 'admin' %}
+      <a href="/export/csv" class="db-btn">Export CSV</a>
+      <a href="/export/json" class="db-btn">Export JSON</a>
+      {% endif %}
+      <div class="db-count">Showing <span id="db-shown">—</span> of <span id="db-total">—</span> rows</div>
+    </div>
+    <div style="overflow-x:auto">
+      <table id="db-table">
+        <thead><tr><th>ID</th><th>Timestamp</th><th>Vehicles</th><th>Avg Confidence</th><th>Intensity</th><th>Congestion</th></tr></thead>
+        <tbody id="db-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════ ALERTS ═══════════════════════ -->
+<div class="tab-panel" id="tab-alerts">
+<div class="content">
+  <div class="alerts-grid">
+    <div class="panel">
+      <div class="ph"><div class="pt"><div class="pt-dot" style="background:var(--red)"></div>Live AI Alerts</div><span class="badge red" id="alert-count">0 alerts</span></div>
+      <div class="alert-scroll" id="alert-list"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div class="pt"><div class="pt-dot" style="background:var(--green)"></div>Optimization Suggestions</div></div>
+      <div id="opt-panel">
+        <div class="opt-item"><div class="opt-icon" style="background:var(--green-dim)">🟢</div><div><div class="opt-title">Extend N–S green phase</div><div class="opt-desc">When north queue > 8 vehicles, extending green by 8s reduces avg wait by ~18%.</div></div></div>
+        <div class="opt-item"><div class="opt-icon" style="background:var(--cyan-dim)">🔵</div><div><div class="opt-title">Reduce pedestrian interval at low density</div><div class="opt-desc">Current pedestrian count is low. Shorter crossing wait improves cycle efficiency ~12%.</div></div></div>
+        <div class="opt-item"><div class="opt-icon" style="background:var(--amber-dim)">🟡</div><div><div class="opt-title">Activate adaptive left-turn phase</div><div class="opt-desc">Q-agent Phase 2/3 reduces left-turn queue buildup during peak hour by 22%.</div></div></div>
+        <div class="opt-item"><div class="opt-icon" style="background:var(--red-dim)">🔴</div><div><div class="opt-title">Alert if congestion > 85% for 60s</div><div class="opt-desc">Sustained high congestion triggers manual review recommendation.</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  {% if current_user.role == 'admin' %}
+  <!-- Email Alert Settings (admin only) -->
+  <div class="ea-section">
+    <div class="panel">
+      <div class="ph">
+        <div class="pt"><div class="pt-dot" style="background:var(--amber)"></div>Email Congestion Alerts</div>
+        <span class="badge amber" id="ea-status-badge">DISABLED</span>
+      </div>
+
+      <!-- Enable toggle -->
+      <div class="ea-toggle-row">
+        <label class="ea-toggle">
+          <input type="checkbox" id="ea-enabled" onchange="eaToggleEnabled()">
+          <span class="ea-slider"></span>
+        </label>
+        <span style="font-size:11px;color:var(--text-dim)">Send email alerts when congestion exceeds threshold</span>
+      </div>
+
+      <!-- SMTP + alert config form -->
+      <div class="ea-form">
+        <div class="ea-field">
+          <label class="ea-label" for="ea-smtp-server">SMTP Server</label>
+          <input class="ea-input" type="text" id="ea-smtp-server" placeholder="smtp.gmail.com">
+        </div>
+        <div class="ea-field">
+          <label class="ea-label" for="ea-smtp-port">SMTP Port</label>
+          <input class="ea-input" type="number" id="ea-smtp-port" placeholder="587" min="1" max="65535">
+        </div>
+        <div class="ea-field">
+          <label class="ea-label" for="ea-smtp-user">SMTP Username</label>
+          <input class="ea-input" type="text" id="ea-smtp-user" placeholder="your@email.com" autocomplete="username">
+        </div>
+        <div class="ea-field">
+          <label class="ea-label" for="ea-smtp-pass">SMTP Password</label>
+          <div class="ea-pw-wrap">
+            <input class="ea-input" type="password" id="ea-smtp-pass" placeholder="Leave blank to keep current" autocomplete="current-password">
+            <button class="ea-pw-eye" type="button" onclick="eaTogglePass()" title="Show/hide password">&#128065;</button>
+          </div>
+        </div>
+        <div class="ea-field">
+          <label class="ea-label" for="ea-sender">Sender Email</label>
+          <input class="ea-input" type="email" id="ea-sender" placeholder="alerts@yourdomain.com">
+        </div>
+        <div class="ea-field">
+          <label class="ea-label" for="ea-threshold">Congestion Threshold (%)</label>
+          <input class="ea-input" type="number" id="ea-threshold" placeholder="85" min="1" max="100">
+        </div>
+        <div class="ea-field">
+          <label class="ea-label" for="ea-consecutive">Consecutive Readings</label>
+          <input class="ea-input" type="number" id="ea-consecutive" placeholder="3" min="1" max="60">
+        </div>
+        <div class="ea-field">
+          <label class="ea-label" for="ea-cooldown">Cooldown (minutes)</label>
+          <input class="ea-input" type="number" id="ea-cooldown" placeholder="5" min="1" max="1440">
+        </div>
+        <div class="ea-field full">
+          <label class="ea-label" for="ea-recipients">Recipient Emails (comma-separated)</label>
+          <textarea class="ea-input" id="ea-recipients" rows="2" placeholder="admin@example.com, ops@example.com" style="resize:vertical"></textarea>
+        </div>
+        <div class="ea-field full" style="display:flex;gap:8px;align-items:center;flex-direction:row">
+          <button class="ea-btn" onclick="saveEmailSettings()">Save Settings</button>
+          <button class="ea-btn amber" id="ea-test-btn" onclick="sendTestEmail()">Send Test Email</button>
+          <span id="ea-save-status" class="ea-status" style="margin:0"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alert history -->
+    <div class="panel" style="margin-top:14px">
+      <div class="ph">
+        <div class="pt"><div class="pt-dot"></div>Alert History</div>
+        <button class="badge" style="background:none;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:9px;letter-spacing:.5px" onclick="loadEmailAlertHistory()">Refresh</button>
+      </div>
+      <div class="ea-hist-wrap">
+        <table class="ea-hist-table">
+          <thead><tr><th>Sent At</th><th>Recipients</th><th>Congestion</th><th>Status</th><th>Error</th></tr></thead>
+          <tbody id="ea-hist-body"><tr><td colspan="5" style="color:var(--text-muted);text-align:center;padding:10px">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+</div>
+
+<footer>Bachelor's Thesis · "Real-Time Intelligent Traffic Monitoring and Optimization System" · 2026 · YOLOv8 + Q-Learning + Flask + SQLite</footer>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────
+let congHistory=[], intensHistory=[], sessionVehicles=0, obs=0, peakCong=0;
+let chartTimeline, chartMix, chartIntens, chartQvals, chartReward;
+let allDbRows=[], alerts=[];
+let prevCong=0;
+
+// ─── Clock ───────────────────────────────────────
+function tick(){document.getElementById('clock').textContent=new Date().toTimeString().slice(0,8)}
+tick(); setInterval(tick,1000);
+
+// ─── Tab switching ────────────────────────────────
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='analytics'&&!chartTimeline) initAnalyticsCharts();
+  if(name==='optimizer'&&!chartQvals) initOptimizerCharts();
+  if(name==='database') loadDB();
+  if(name==='alerts') { loadEmailSettings(); loadEmailAlertHistory(); }
+}
+
+// ─── /stats polling (your existing endpoint) ─────
+async function pollStats(){
+  try{
+    const r=await fetch('/stats');
+    const d=await r.json();
+    const cars=d.car||0, motos=d.motorbike||0, peds=d.person||0;
+    const cong=d.congestion||0;
+    const total=cars+motos;
+    const intensity=(total/10).toFixed(1);
+
+    g('k-vehicles').textContent=total;
+    g('k-cong').innerHTML=cong+'<span class="kpi-unit">%</span>';
+    g('k-ped').textContent=peds;
+    g('k-int').innerHTML=intensity+'<span class="kpi-unit"> v/s</span>';
+
+    // Congestion bar color
+    const bar=g('cong-bar'), val=g('cong-val');
+    bar.style.width=cong+'%';
+    val.textContent=cong+'%';
+    if(cong>=80){bar.style.background='var(--red)';val.style.color='var(--red)';}
+    else if(cong>=50){bar.style.background='var(--amber)';val.style.color='var(--amber)';}
+    else{bar.style.background='var(--green)';val.style.color='var(--green)';}
+
+    // KPI delta
+    const delta=cong-prevCong;
+    const ced=g('k-c-d');
+    if(delta>0){ced.textContent='↑ +'+delta.toFixed(1)+'%';ced.style.color='var(--red)';}
+    else if(delta<0){ced.textContent='↓ '+delta.toFixed(1)+'%';ced.style.color='var(--green)';}
+    else{ced.textContent='→ stable';ced.style.color='var(--text-muted)';}
+    prevCong=cong;
+
+    // Detection counts
+    g('cnt-car').textContent=cars;
+    g('cnt-moto').textContent=motos;
+    g('cnt-ped').textContent=peds;
+    const mx=Math.max(total,1);
+    g('bar-car').style.width=(cars/mx*100)+'%';
+    g('bar-moto').style.width=(motos/mx*100)+'%';
+    g('bar-ped').style.width=(peds/mx*100)+'%';
+
+    // Analytics history
+    const now=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    congHistory.push({t:now,v:cong});
+    intensHistory.push({t:now,v:parseFloat(intensity)});
+    if(congHistory.length>60){congHistory.shift();intensHistory.shift();}
+    sessionVehicles+=total; obs++;
+    if(cong>peakCong)peakCong=cong;
+
+    // Session stats
+    const avgC=Math.round(congHistory.reduce((a,b)=>a+b.v,0)/congHistory.length);
+    g('s-peak').textContent=peakCong+'%';
+    g('s-avg').textContent=avgC+'%';
+    g('s-total').textContent=sessionVehicles;
+    g('s-obs').textContent=obs;
+
+    // Single-flow panel values (mirrors KPIs — updated here so they're always fresh)
+    if(g('flow-vehicles')) g('flow-vehicles').textContent=total;
+    if(g('flow-congestion')) g('flow-congestion').textContent=cong+'%';
+
+    // Analytics charts update
+    if(chartTimeline){
+      chartTimeline.data.labels=congHistory.map(x=>x.t);
+      chartTimeline.data.datasets[0].data=congHistory.map(x=>x.v);
+      chartTimeline.update('none');
+      chartMix.data.datasets[0].data=[cars,motos,peds];
+      chartMix.update('none');
+      const last20i=intensHistory.slice(-20);
+      chartIntens.data.labels=last20i.map(x=>x.t);
+      chartIntens.data.datasets[0].data=last20i.map(x=>x.v);
+      chartIntens.update('none');
+    }
+
+    // AI alerts
+    if(cong>=85) addAlert('critical','High Congestion Detected','Intersection congestion exceeded 85%. Q-agent adjusting signal phases.',now);
+    else if(cong>=65&&Math.random()<0.2) addAlert('warning','Elevated Traffic Density','Vehicle count above moderate threshold.',now);
+    else if(cong<30&&Math.random()<0.1) addAlert('success','Traffic Flow Normal','Congestion below 30%. Free-flow conditions.',now);
+
+  }catch(e){console.error('Stats fetch error',e)}
+}
+
+// ─── /db_status polling ───────────────────────────
+async function pollDB(){
+  try{
+    const r=await fetch('/db_status');
+    const d=await r.json();
+    g('db-status-text').textContent=d.connected?`ACTIVE (${d.row_count} rows)`:'DISCONNECTED';
+    g('db-status-text').style.color=d.connected?'var(--green)':'var(--red)';
+    g('k-db').textContent=d.row_count||'—';
+  }catch(e){}
+}
+
+// ─── /api/signal polling (Q-agent + scene type) ───
+async function pollSignal(){
+  try{
+    const r=await fetch('/api/signal');
+    const d=await r.json();
+    if(d.error){
+      g('rl-phase').textContent='Run: python q_agent.py --mode benchmark';
+      return;
+    }
+
+    // ── Scene-type badge ─────────────────────────────
+    const sceneType=d.scene_type||'uncertain';
+    const rlActive =d.rl_active!==false;
+    const sb=g('scene-badge');
+    if(sb){
+      if(sceneType==='intersection'){
+        sb.textContent='INTERSECTION';
+        sb.className='badge green';
+      }else if(sceneType==='single_flow'){
+        sb.textContent='SINGLE FLOW';
+        sb.className='badge amber';
+      }else{
+        sb.textContent='ANALYZING...';
+        sb.className='badge';
+      }
+    }
+
+    // ── Toggle panel content ─────────────────────────
+    const intPanel=g('rl-content-intersection');
+    const flowPanel=g('rl-content-flow');
+    const hint=g('rl-analyzing-hint');
+    if(intPanel&&flowPanel){
+      const showFlow=sceneType==='single_flow';
+      intPanel.style.display=showFlow?'none':'';
+      flowPanel.style.display=showFlow?'':'none';
+      // Show "analyzing..." hint only while uncertain
+      if(hint) hint.style.display=(sceneType==='uncertain')?'':'none';
+    }
+
+    // ── RL Optimizer tab: context banner ─────────────
+    const optBanner=g('rl-optimizer-banner');
+    if(optBanner) optBanner.style.display=(sceneType==='single_flow')?'':'none';
+
+    // ── Intersection mode: RL phase + queues ─────────
+    if(sceneType!=='single_flow'){
+      g('rl-phase').textContent='Phase '+d.phase+': '+d.phase_name+' ('+d.phase_duration+'s)';
+      g('rl-badge').textContent='Phase '+d.phase;
+      g('q-north').textContent=(d.queues?.north||0)+' v';
+      g('q-south').textContent=(d.queues?.south||0)+' v';
+      g('q-east').textContent=(d.queues?.east||0)+' v';
+      g('q-west').textContent=(d.queues?.west||0)+' v';
+    }else{
+      g('rl-badge').textContent='PAUSED';
+    }
+
+    // Highlight active phase (optimizer tab)
+    for(let i=0;i<4;i++){
+      const el=g('phase-'+i);
+      if(!el) continue;
+      el.style.background=i===d.phase?'rgba(0,229,255,0.07)':'var(--bg2)';
+      el.style.borderTop=i===d.phase?'2px solid var(--cyan)':'2px solid transparent';
+    }
+
+    // Q-values chart — data owned by pollTraining(); only update phase highlight here
+    if(chartQvals&&d.phase!==undefined){
+      chartQvals.data.datasets[0].backgroundColor=Array.from({length:4},(_,i)=>
+        i===d.phase?'rgba(0,229,255,0.7)':'rgba(255,255,255,0.15)');
+      chartQvals.update('none');
+    }
+
+    // Epsilon badge
+    if(g('eps-badge'))g('eps-badge').textContent='ε: '+(d.epsilon||'—');
+
+  }catch(e){}
+}
+
+// ─── /api/training polling ────────────────────────
+async function pollTraining(){
+  try{
+    const r=await fetch('/api/training');
+    const d=await r.json();
+    if(d.episodes>0&&chartReward){
+      g('ep-badge').textContent=d.episodes+' episodes';
+      chartReward.data.labels=d.episode_rewards.map((_,i)=>i+1);
+      chartReward.data.datasets[0].data=d.episode_rewards;
+      chartReward.update('none');
+    }
+    if(chartQvals&&d.q_values){
+      const qv=[d.q_values.phase_0||0,d.q_values.phase_1||0,d.q_values.phase_2||0,d.q_values.phase_3||0];
+      chartQvals.data.datasets[0].data=qv;
+      chartQvals.update('none');
+    }
+  }catch(e){}
+}
+
+// ─── Q-values retry poller (called once when Optimizer tab opens) ──
+function startQValuesPoller(){
+  const canvas=g('chart-qvals');
+  if(!canvas)return;
+  const wrap=canvas.parentElement;
+  const loadEl=document.createElement('div');
+  loadEl.id='qvals-loading';
+  loadEl.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#4a5568;pointer-events:none';
+  loadEl.textContent='Loading Q-table...';
+  wrap.style.position='relative';
+  wrap.appendChild(loadEl);
+  let attempts=0;
+  const MAX=20;
+  const timerId=setInterval(async function(){
+    attempts++;
+    try{
+      const r=await fetch('/api/training');
+      const d=await r.json();
+      const qv=d.q_values?[d.q_values.phase_0||0,d.q_values.phase_1||0,d.q_values.phase_2||0,d.q_values.phase_3||0]:[0,0,0,0];
+      if(qv.some(v=>v>0)){
+        if(chartQvals){chartQvals.data.datasets[0].data=qv;chartQvals.update('none');}
+        loadEl.remove();
+        clearInterval(timerId);
+        return;
+      }
+    }catch(e){}
+    if(attempts>=MAX)loadEl.remove(),clearInterval(timerId);
+  },3000);
+}
+
+// ─── /api/benchmark ───────────────────────────────
+async function loadBenchmark(){
+  try{
+    const r=await fetch('/api/benchmark');
+    const d=await r.json();
+    if(d.error){return;}
+    const scenarios=['low','medium','peak'];
+    const labels={'low':'Low traffic','medium':'Medium traffic','peak':'Peak hour'};
+    let html=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">`;
+    for(const s of scenarios){
+      const sr=d[s];
+      if(!sr)continue;
+      const imp=sr.wait_improvement_pct||0;
+      const col=imp>=20?'var(--green)':imp>=10?'var(--amber)':'var(--cyan)';
+      html+=`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px">
+        <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px">${labels[s]}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px">Fixed-time: <span style="color:var(--red)">${sr.fixed_avg_wait}s avg wait</span></div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px">Q-Learning: <span style="color:var(--green)">${sr.rl_avg_wait}s avg wait</span></div>
+        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:${col}">${imp}% better</div>
+        <div style="font-size:9px;color:var(--text-muted);margin-top:2px">waiting time reduction</div>
+      </div>`;
+    }
+    html+=`</div>`;
+    g('benchmark-panel').innerHTML=html;
+  }catch(e){}
+}
+
+// ─── Database tab ────────────────────────────────
+async function loadDB(){
+  try{
+    const r=await fetch('/export/json');
+    allDbRows=await r.json();
+    allDbRows.reverse();
+    renderDBTable(allDbRows);
+  }catch(e){console.error('DB load error',e)}
+}
+function renderDBTable(rows){
+  const shown=rows.slice(0,100);
+  g('db-shown').textContent=shown.length;
+  g('db-total').textContent=rows.length;
+  g('db-tbody').innerHTML=shown.map(r=>{
+    const c=r.congestion_percentage||0;
+    const cls=c>=80?'high':c>=50?'med':'low';
+    return`<tr>
+      <td style="color:var(--text-muted)">${r.id}</td>
+      <td>${r.timestamp}</td>
+      <td style="color:var(--cyan);font-weight:500">${r.vehicles_count}</td>
+      <td>${((r.avg_confidence||0)*100).toFixed(0)}%</td>
+      <td>${(r.traffic_intensity||0).toFixed(1)} v/s</td>
+      <td><span class="pill ${cls}">${c.toFixed(0)}%</span></td>
+    </tr>`;
+  }).join('');
+}
+function filterDB(){
+  const q=(g('db-filter').value||'').toLowerCase();
+  if(!q){renderDBTable(allDbRows);return;}
+  const f=allDbRows.filter(r=>
+    r.timestamp?.toLowerCase().includes(q)||
+    String(r.vehicles_count).includes(q)||
+    String(Math.round(r.congestion_percentage||0)).includes(q)
+  );
+  renderDBTable(f);
+}
+
+// ─── Alerts ──────────────────────────────────────
+function addAlert(type,title,desc,time){
+  const colors={critical:'var(--red)',warning:'var(--amber)',info:'var(--cyan)',success:'var(--green)'};
+  alerts.unshift({type,title,desc,time});
+  if(alerts.length>40)alerts.pop();
+  g('alert-count').textContent=alerts.length+' alert'+(alerts.length!==1?'s':'');
+  g('alert-list').innerHTML=alerts.map(a=>`
+    <div class="alert-item">
+      <div class="a-bar" style="background:${colors[a.type]||'var(--cyan)'}"></div>
+      <div style="flex:1">
+        <div class="a-title" style="color:${colors[a.type]||'var(--cyan)'}">${a.title}</div>
+        <div class="a-desc">${a.desc}</div>
+      </div>
+      <div class="a-time">${a.time}</div>
+    </div>`).join('');
+}
+
+// ─── Charts ──────────────────────────────────────
+function initAnalyticsCharts(){
+  chartTimeline=new Chart(g('chart-timeline'),{type:'line',data:{labels:[],datasets:[{label:'Congestion %',data:[],borderColor:'#00e5ff',backgroundColor:'rgba(0,229,255,0.05)',fill:true,tension:0.4,borderWidth:1.5,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#4a5568',font:{size:10},callback:v=>v+'%'}}},animation:{duration:300}}});
+  chartMix=new Chart(g('chart-mix'),{type:'doughnut',data:{labels:['Cars','Motorbikes','Pedestrians'],datasets:[{data:[0,0,0],backgroundColor:['#00e5ff','#ffb300','#b464ff'],borderColor:'#0c1018',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:'#4a5568',font:{size:10},boxWidth:10,padding:8}}},animation:{duration:500}}});
+  chartIntens=new Chart(g('chart-intens'),{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:'rgba(255,179,0,0.35)',borderColor:'#ffb300',borderWidth:1,borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{min:0,max:3,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#4a5568',font:{size:10}}}},animation:{duration:200}}});
+}
+function initOptimizerCharts(){
+  chartQvals=new Chart(g('chart-qvals'),{type:'bar',data:{labels:['Phase 0\nN-S Green','Phase 1\nE-W Green','Phase 2\nN-S Left','Phase 3\nE-W Left'],datasets:[{data:[0,0,0,0],backgroundColor:['rgba(0,229,255,0.4)','rgba(255,255,255,0.1)','rgba(255,255,255,0.1)','rgba(255,255,255,0.1)'],borderColor:['#00e5ff','rgba(255,255,255,0.2)','rgba(255,255,255,0.2)','rgba(255,255,255,0.2)'],borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#4a5568',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#4a5568',font:{size:10}}}},animation:{duration:400}}});
+  chartReward=new Chart(g('chart-reward'),{type:'line',data:{labels:[],datasets:[{label:'Reward',data:[],borderColor:'#b464ff',backgroundColor:'rgba(180,100,255,0.06)',fill:true,tension:0.3,borderWidth:1.5,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#4a5568',font:{size:10}}}},animation:{duration:300}}});
+  loadBenchmark();
+  startQValuesPoller();
+}
+
+// ─── Helpers ─────────────────────────────────────
+function g(id){return document.getElementById(id)}
+
+// ─── Boot ────────────────────────────────────────
+pollStats(); pollDB(); pollSignal();
+setInterval(pollStats, 3000);
+setInterval(pollDB, 10000);
+setInterval(pollSignal, 3000);
+setInterval(pollTraining, 5000);
+
+// ─── PDF Report ──────────────────────────────────
+async function generateReport() {
+  const btn = g('report-btn');
+  if (!btn) return;
+  const origHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="animation:spin 1s linear infinite"><path d="M6 1a5 5 0 1 1-5 5" stroke="#00e5ff" stroke-width="1.5" stroke-linecap="round"/></svg> Generating...';
+  try {
+    const r = await fetch('/api/report/pdf');
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({error: 'Unknown error'}));
+      alert('Report generation failed: ' + (err.error || r.status));
+      return;
+    }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'trafficmind_report.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Report generation failed: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origHTML;
+  }
+}
+
+// ─── Video Source Manager ─────────────────────────
+const _csrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+let vsmOpen = false;
+
+function toggleVSM() {
+  vsmOpen = !vsmOpen;
+  const body = g('vsm-body');
+  if(body) body.style.display = vsmOpen ? '' : 'none';
+  const arr = g('vsm-arrow');
+  if(arr) arr.classList.toggle('open', vsmOpen);
+  if(vsmOpen) loadVSMData();
+}
+
+function vsmSwitchTab(name, btn) {
+  document.querySelectorAll('.vsm-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.vsm-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const pane = g('vsm-pane-' + name);
+  if(pane) pane.classList.add('active');
+}
+
+async function loadVSMData() {
+  try {
+    const r = await fetch('/api/video-source');
+    const d = await r.json();
+    if(d.error) return;
+    const lbl = g('vsm-label');
+    if(lbl) lbl.textContent = d.display_name || d.source_value || '—';
+    renderVSMHistory(d.recent || []);
+  } catch(e) {}
+}
+
+function renderVSMHistory(items) {
+  const el = g('vsm-history');
+  if(!el) return;
+  if(!items.length) {
+    el.innerHTML = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--text-muted);padding:4px 0">No history yet.</div>';
+    return;
+  }
+  el.innerHTML = items.map(i => {
+    const cls = 'vsm-type-' + (i.source_type || 'file');
+    const raw = i.source_value || '';
+    const val = raw.length > 26 ? '…' + raw.slice(-23) : raw;
+    const ts = (i.switched_at || '').slice(0, 16);
+    return '<div class="vsm-hist-item">'
+      + '<span class="vsm-type-pill ' + cls + '">' + (i.source_type || '') + '</span>'
+      + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + raw + '">' + val + '</span>'
+      + '<span style="opacity:.6;white-space:nowrap">' + ts + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+function vsmSetStatus(pane, msg, color) {
+  const el = g('vsm-status-' + pane);
+  if(el) { el.textContent = msg; el.style.color = color || 'var(--text-muted)'; }
+}
+
+async function vsmDoSwitch(source_type, source_value, pane) {
+  vsmSetStatus(pane, 'Switching…', 'var(--amber)');
+  const btn = document.querySelector('#vsm-pane-' + pane + ' .vsm-btn');
+  if(btn) btn.disabled = true;
+  try {
+    const r = await fetch('/api/video-source/change', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _csrf() },
+      body: JSON.stringify({ source_type, source_value })
+    });
+    const d = await r.json();
+    if(d.ok) {
+      vsmSetStatus(pane, 'Switched successfully.', 'var(--green)');
+      loadVSMData();
+    } else {
+      vsmSetStatus(pane, 'Error: ' + (d.error || 'Unknown error'), 'var(--red)');
+    }
+  } catch(e) {
+    vsmSetStatus(pane, 'Request failed: ' + e.message, 'var(--red)');
+  } finally {
+    if(btn) btn.disabled = false;
+  }
+}
+
+function vsmSwitchFile() {
+  const val = (g('vsm-file-path').value || '').trim();
+  if(!val) { vsmSetStatus('file', 'Please enter a file path.', 'var(--amber)'); return; }
+  vsmDoSwitch('file', val, 'file');
+}
+
+function vsmSwitchYT() {
+  const val = (g('vsm-yt-url').value || '').trim();
+  if(!val) { vsmSetStatus('yt', 'Please enter a YouTube URL.', 'var(--amber)'); return; }
+  vsmDoSwitch('youtube', val, 'yt');
+}
+
+function vsmSwitchWebcam() {
+  const val = g('vsm-cam-idx').value;
+  vsmDoSwitch('webcam', val, 'webcam');
+}
+
+function vsmDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function vsmDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function vsmDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if(file) vsmUpload(file);
+}
+function vsmFileSelected(input) {
+  if(input.files[0]) vsmUpload(input.files[0]);
+}
+
+async function vsmUpload(file) {
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if(!['mp4','avi','mov','mkv','webm'].includes(ext)) {
+    vsmSetStatus('file', 'Unsupported format. Use: mp4, avi, mov, mkv, webm', 'var(--red)'); return;
+  }
+  if(file.size > 500 * 1024 * 1024) {
+    vsmSetStatus('file', 'File too large (max 500 MB)', 'var(--red)'); return;
+  }
+  const dropText = g('vsm-drop-text');
+  if(dropText) dropText.textContent = 'Uploading: ' + file.name;
+  vsmSetStatus('file', 'Uploading ' + file.name + '…', 'var(--amber)');
+  const btn = document.querySelector('#vsm-pane-file .vsm-btn');
+  if(btn) btn.disabled = true;
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const r = await fetch('/api/video-source/upload', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': _csrf() },
+      body: fd
+    });
+    const d = await r.json();
+    if(d.ok) {
+      vsmSetStatus('file', 'Uploaded and switched to ' + d.source_value, 'var(--green)');
+      if(dropText) dropText.textContent = d.source_value;
+      loadVSMData();
+    } else {
+      vsmSetStatus('file', 'Error: ' + (d.error || 'Unknown error'), 'var(--red)');
+      if(dropText) dropText.textContent = 'Drop video file here or click to browse';
+    }
+  } catch(e) {
+    vsmSetStatus('file', 'Upload failed: ' + e.message, 'var(--red)');
+    if(dropText) dropText.textContent = 'Drop video file here or click to browse';
+  } finally {
+    if(btn) btn.disabled = false;
+    const fi = g('vsm-file-input');
+    if(fi) fi.value = '';
+  }
+}
+
+// Load current source label on page load (admin only)
+if(g('vsm-panel')) loadVSMData();
+
+// ─── Email Alert Settings (admin only) ───────────
+function updateEmailStatusBadge(enabled) {
+  const badge = g('ea-status-badge');
+  if(!badge) return;
+  if(enabled) {
+    badge.textContent = 'ENABLED';
+    badge.className = 'badge green';
+  } else {
+    badge.textContent = 'DISABLED';
+    badge.className = 'badge amber';
+  }
+}
+
+async function loadEmailSettings() {
+  if(!g('ea-enabled')) return;
+  try {
+    const r = await fetch('/api/email-settings');
+    if(!r.ok) return;
+    const d = await r.json();
+    g('ea-enabled').checked = !!d.enabled;
+    g('ea-smtp-server').value = d.smtp_server || '';
+    g('ea-smtp-port').value = d.smtp_port || 587;
+    g('ea-smtp-user').value = d.smtp_username || '';
+    g('ea-smtp-pass').value = '';
+    g('ea-sender').value = d.sender_email || '';
+    g('ea-recipients').value = d.recipient_emails || '';
+    g('ea-threshold').value = d.congestion_threshold || 85;
+    g('ea-consecutive').value = d.consecutive_readings || 3;
+    g('ea-cooldown').value = d.cooldown_minutes || 5;
+    updateEmailStatusBadge(!!d.enabled);
+  } catch(e) {}
+}
+
+function eaToggleEnabled() {
+  updateEmailStatusBadge(g('ea-enabled').checked);
+}
+
+async function saveEmailSettings() {
+  const btn = document.querySelector('.ea-btn');
+  const status = g('ea-save-status');
+  if(btn) btn.disabled = true;
+  if(status) { status.textContent = 'Saving…'; status.style.color = 'var(--amber)'; }
+  try {
+    const payload = {
+      enabled: g('ea-enabled').checked ? 1 : 0,
+      smtp_server: g('ea-smtp-server').value.trim(),
+      smtp_port: parseInt(g('ea-smtp-port').value) || 587,
+      smtp_username: g('ea-smtp-user').value.trim(),
+      smtp_password: g('ea-smtp-pass').value,
+      sender_email: g('ea-sender').value.trim(),
+      recipient_emails: g('ea-recipients').value.trim(),
+      congestion_threshold: parseInt(g('ea-threshold').value) || 85,
+      consecutive_readings: parseInt(g('ea-consecutive').value) || 3,
+      cooldown_minutes: parseInt(g('ea-cooldown').value) || 5,
+    };
+    const r = await fetch('/api/email-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _csrf() },
+      body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    if(d.ok) {
+      if(status) { status.textContent = 'Saved.'; status.style.color = 'var(--green)'; }
+      g('ea-smtp-pass').value = '';
+    } else {
+      if(status) { status.textContent = 'Save failed: ' + (d.error || 'Unknown error'); status.style.color = 'var(--red)'; }
+    }
+  } catch(e) {
+    if(status) { status.textContent = 'Request failed: ' + e.message; status.style.color = 'var(--red)'; }
+  } finally {
+    if(btn) btn.disabled = false;
+    setTimeout(() => { if(status) status.textContent = ''; }, 4000);
+  }
+}
+
+async function sendTestEmail() {
+  const btn = g('ea-test-btn');
+  const status = g('ea-save-status');
+  if(btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  try {
+    const r = await fetch('/api/email-settings/test', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': _csrf() }
+    });
+    const d = await r.json();
+    if(d.ok) {
+      if(status) { status.textContent = 'Test email sent successfully.'; status.style.color = 'var(--green)'; }
+    } else {
+      if(status) { status.textContent = 'Test failed: ' + (d.error || 'Unknown error'); status.style.color = 'var(--red)'; }
+    }
+    loadEmailAlertHistory();
+  } catch(e) {
+    if(status) { status.textContent = 'Request failed: ' + e.message; status.style.color = 'var(--red)'; }
+  } finally {
+    if(btn) { btn.disabled = false; btn.textContent = 'Send Test Email'; }
+    setTimeout(() => { if(status) status.textContent = ''; }, 5000);
+  }
+}
+
+async function loadEmailAlertHistory() {
+  const tbody = g('ea-hist-body');
+  if(!tbody) return;
+  try {
+    const r = await fetch('/api/email-alert-history');
+    const d = await r.json();
+    const rows = d.alerts || [];
+    if(!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-muted);text-align:center;padding:10px">No alerts sent yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(a => {
+      const sc = a.status === 'sent' ? 'var(--green)' : 'var(--red)';
+      const cong = a.congestion_value > 0 ? a.congestion_value.toFixed(0) + '%' : '—';
+      const rcpt = (a.recipient_emails || '').length > 28 ? (a.recipient_emails || '').slice(0,25) + '…' : (a.recipient_emails || '—');
+      const ts = (a.sent_at || '').slice(0,16);
+      const err = a.error_message ? ('<span title="' + a.error_message + '">⚠ ' + a.error_message.slice(0,30) + '</span>') : '—';
+      return '<tr>'
+        + '<td>' + ts + '</td>'
+        + '<td title="' + (a.recipient_emails||'') + '">' + rcpt + '</td>'
+        + '<td>' + cong + '</td>'
+        + '<td style="color:' + sc + ';font-weight:600">' + (a.status||'—').toUpperCase() + '</td>'
+        + '<td style="color:var(--amber);font-size:9px">' + err + '</td>'
+        + '</tr>';
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--red);text-align:center;padding:10px">Failed to load history.</td></tr>';
+  }
+}
+
+function eaTogglePass() {
+  const inp = g('ea-smtp-pass');
+  if(!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+</script>
+</body>
+</html>

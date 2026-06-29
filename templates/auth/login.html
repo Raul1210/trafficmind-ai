@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — TrafficMind AI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cyan:#00e5ff;--cyan-dim:rgba(0,229,255,0.10);--cyan-border:rgba(0,229,255,0.25);
+  --green:#00ff88;--green-dim:rgba(0,255,136,0.10);
+  --red:#ff4444;--red-dim:rgba(255,68,68,0.12);
+  --bg:#07090f;--bg2:#0c1018;--bg3:#111827;
+  --text:#e2e8f0;--text-muted:#4a5568;--text-dim:#94a3b8;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Inter',sans-serif;font-size:14px;
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  overflow-x:hidden;
+}
+/* Animated grid background */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,255,0.025) 1px,transparent 1px);
+  background-size:44px 44px;pointer-events:none;z-index:0;
+}
+/* Radial glow */
+body::after{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,229,255,0.04) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+/* Wrapper */
+.page{position:relative;z-index:1;width:100%;max-width:420px;padding:24px 16px;animation:fadeUp .5s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+/* Logo */
+.logo{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:36px}
+.logo-box{
+  width:44px;height:44px;border:1.5px solid var(--cyan);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;background:var(--cyan-dim);
+  box-shadow:0 0 20px rgba(0,229,255,0.15);
+}
+.logo-box svg{width:20px;height:20px}
+.logo-text .title{
+  font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;
+  letter-spacing:3px;color:var(--cyan);text-transform:uppercase;
+}
+.logo-text .sub{
+  font-size:10px;color:var(--text-muted);letter-spacing:1.5px;
+  text-transform:uppercase;margin-top:2px;
+}
+
+/* Card */
+.card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:16px;
+  padding:36px 40px;box-shadow:0 24px 64px rgba(0,0,0,0.5);
+}
+.card-title{
+  font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;
+  letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);
+  text-align:center;margin-bottom:28px;
+}
+
+/* Form fields */
+.field{margin-bottom:20px}
+.field label{
+  display:block;font-size:10px;font-weight:500;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;
+}
+.input-wrap{position:relative}
+.input-wrap input{
+  width:100%;background:rgba(255,255,255,0.04);
+  border:1px solid var(--border);border-radius:8px;
+  padding:11px 40px 11px 14px;
+  font-family:'Inter',sans-serif;font-size:14px;color:var(--text);
+  outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.input-wrap input:focus{
+  border-color:var(--cyan-border);
+  box-shadow:0 0 0 3px rgba(0,229,255,0.08);
+}
+.input-wrap input::placeholder{color:var(--text-muted)}
+/* show/hide password toggle */
+.toggle-pw{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;color:var(--text-muted);
+  font-size:14px;padding:2px;transition:color .15s;
+}
+.toggle-pw:hover{color:var(--text-dim)}
+
+/* Submit button */
+.btn-login{
+  width:100%;padding:12px;margin-top:8px;
+  background:var(--cyan-dim);border:1px solid var(--cyan-border);border-radius:8px;
+  color:var(--cyan);font-family:'Rajdhani',sans-serif;font-size:14px;
+  font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  cursor:pointer;transition:background .2s,box-shadow .2s;
+}
+.btn-login:hover{background:rgba(0,229,255,0.18);box-shadow:0 0 20px rgba(0,229,255,0.15)}
+.btn-login:active{transform:scale(0.99)}
+
+/* Flash messages */
+.flashes{margin-bottom:20px}
+.flash{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:8px;
+}
+.flash.error{background:var(--red-dim);border:1px solid rgba(255,68,68,.25);color:#ff4444}
+.flash.success{background:var(--green-dim);border:1px solid rgba(0,255,136,.25);color:var(--green)}
+.flash.warning{background:rgba(255,179,0,0.12);border:1px solid rgba(255,179,0,.25);color:#ffb300}
+
+/* Divider */
+.divider{height:1px;background:var(--border);margin:24px 0}
+
+/* Status row */
+.status-row{display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;color:var(--text-muted)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse-g 2s infinite;flex-shrink:0}
+@keyframes pulse-g{0%,100%{box-shadow:0 0 0 0 rgba(0,255,136,.5)}50%{box-shadow:0 0 0 5px rgba(0,255,136,0)}}
+
+/* Footer */
+footer{margin-top:32px;text-align:center;font-size:10px;color:var(--text-muted);letter-spacing:.5px}
+
+/* Responsive */
+@media(max-width:480px){
+  .card{padding:28px 24px}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Logo -->
+  <div class="logo">
+    <div class="logo-box">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="1" y="7" width="3" height="8" rx="1" fill="#00e5ff"/>
+        <rect x="6" y="4" width="3" height="11" rx="1" fill="#00e5ff" opacity=".7"/>
+        <rect x="11" y="1" width="3" height="14" rx="1" fill="#00e5ff" opacity=".4"/>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <div class="title">TrafficMind AI</div>
+      <div class="sub">Smart Traffic Management System</div>
+    </div>
+  </div>
+
+  <!-- Card -->
+  <div class="card">
+    <div class="card-title">Sign In</div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flashes">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">
+              {% if category == 'error' %}⚠{% elif category == 'success' %}✓{% else %}ℹ{% endif %}
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Login form -->
+    <form method="POST" action="{{ url_for('auth.login') }}{{ '?next=' + request.args.get('next', '') if request.args.get('next') else '' }}" novalidate>
+      {{ form.hidden_tag() }}
+
+      <!-- Username -->
+      <div class="field">
+        <label for="username">Username</label>
+        <div class="input-wrap">
+          {{ form.username(id="username", placeholder="Enter your username", autocomplete="username") }}
+        </div>
+        {% for error in form.username.errors %}
+          <div style="color:#ff4444;font-size:11px;margin-top:5px">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Password -->
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          {{ form.password(id="password", placeholder="Enter your password", autocomplete="current-password") }}
+          <button type="button" class="toggle-pw" onclick="togglePw()" title="Show/Hide password">
+            <span id="pw-eye">👁</span>
+          </button>
+        </div>
+        {% for error in form.password.errors %}
+          <div style="color:#ff4444;font-size:11px;margin-top:5px">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      {{ form.submit(class="btn-login") }}
+    </form>
+
+    <div class="divider"></div>
+
+    <div class="status-row">
+      <div class="status-dot"></div>
+      <span>System online &mdash; TrafficMind AI v1.0</span>
+    </div>
+  </div>
+
+  <footer>© 2026 TrafficMind AI — Thesis Project</footer>
+
+</div>
+
+<script>
+function togglePw() {
+  const inp = document.getElementById('password');
+  const eye = document.getElementById('pw-eye');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    eye.textContent = '🙈';
+  } else {
+    inp.type = 'password';
+    eye.textContent = '👁';
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+test/
+
+# Database
+*.db
+traffic_logs.db
+
+# Logs
+*.log
+
+# YOLO model weights and exports (large binary files, not versioned in git)
+*.pt
+*.onnx
+
+# Q-table training checkpoints (keep only *_final.json)
+q_table_*ep*.json
+
+# Environment secrets
+.env
+
+# Large video files
+*.mp4
+*.avi
+*.mov
+
+# OS
+.DS_Store
+Thumbs.db

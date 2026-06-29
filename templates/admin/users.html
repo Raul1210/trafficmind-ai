@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Management — TrafficMind AI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cyan:#00e5ff;--cyan-dim:rgba(0,229,255,0.10);--cyan-border:rgba(0,229,255,0.25);
+  --green:#00ff88;--green-dim:rgba(0,255,136,0.10);
+  --amber:#ffb300;--amber-dim:rgba(255,179,0,0.12);
+  --red:#ff4444;--red-dim:rgba(255,68,68,0.12);
+  --purple:#b464ff;--purple-dim:rgba(180,100,255,0.12);
+  --bg:#07090f;--bg2:#0c1018;--bg3:#111827;
+  --text:#e2e8f0;--text-muted:#4a5568;--text-dim:#94a3b8;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.025) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* HEADER */
+.header{background:rgba(7,9,15,0.95);border-bottom:1px solid var(--cyan-border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(16px)}
+.logo{display:flex;align-items:center;gap:14px}
+.logo-box{width:34px;height:34px;border:1.5px solid var(--cyan);border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--cyan-dim)}
+.logo-text .title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;letter-spacing:2.5px;color:var(--cyan);text-transform:uppercase}
+.logo-text .sub{font-size:10px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-top:1px}
+.header-right{display:flex;align-items:center;gap:12px}
+
+/* BADGES */
+.role-badge{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border-radius:4px;border:1px solid}
+.role-badge.admin{background:rgba(180,100,255,0.15);border-color:rgba(180,100,255,0.4);color:var(--purple)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:7px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;border:1px solid;text-decoration:none;transition:all .15s}
+.btn-ghost{background:transparent;border-color:var(--border);color:var(--text-dim)}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text);background:rgba(255,255,255,0.04)}
+.btn-cyan{background:var(--cyan-dim);border-color:var(--cyan-border);color:var(--cyan)}
+.btn-cyan:hover{background:rgba(0,229,255,0.18)}
+.btn-red{background:var(--red-dim);border-color:rgba(255,68,68,.3);color:var(--red)}
+.btn-red:hover{background:rgba(255,68,68,.2)}
+.btn-sm{padding:4px 10px;font-size:10px}
+
+/* CONTENT */
+.content{padding:28px;flex:1;max-width:1100px;margin:0 auto;width:100%}
+.page-title{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:6px}
+.page-sub{font-size:11px;color:var(--text-muted);margin-bottom:28px}
+
+/* PANEL */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.015)}
+.pt{font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--cyan);display:flex;align-items:center;gap:8px}
+.pt-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+th{font-family:'Rajdhani',sans-serif;font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);padding:10px 18px;text-align:left;border-bottom:1px solid var(--border);background:rgba(255,255,255,.01)}
+td{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,.015)}
+tr:last-child td{border-bottom:none}
+.user-name{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--text)}
+
+/* PILLS */
+.pill{display:inline-block;padding:2px 8px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.5px}
+.pill.admin{background:rgba(180,100,255,.15);border:1px solid rgba(180,100,255,.3);color:var(--purple)}
+.pill.user{background:var(--cyan-dim);border:1px solid var(--cyan-border);color:var(--cyan)}
+.pill.active{background:var(--green-dim);border:1px solid rgba(0,255,136,.25);color:var(--green)}
+.pill.inactive{background:var(--red-dim);border:1px solid rgba(255,68,68,.25);color:var(--red)}
+
+/* ACTIONS ROW */
+.actions{display:flex;gap:6px;align-items:center}
+
+/* CREATE FORM */
+.create-form{padding:20px 18px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr 160px 120px auto;gap:12px;align-items:end}
+.form-field label{font-size:9px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:6px}
+.form-field input,
+.form-field select{
+  width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);
+  border-radius:7px;padding:8px 12px;font-family:'JetBrains Mono',monospace;
+  font-size:12px;color:var(--text);outline:none;transition:border-color .2s;
+  appearance:none;
+}
+.form-field input:focus,.form-field select:focus{border-color:var(--cyan-border)}
+.form-field input::placeholder{color:var(--text-muted)}
+
+/* FLASH */
+.flashes{margin-bottom:18px}
+.flash{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:8px}
+.flash.success{background:var(--green-dim);border:1px solid rgba(0,255,136,.25);color:var(--green)}
+.flash.error{background:var(--red-dim);border:1px solid rgba(255,68,68,.25);color:var(--red)}
+.flash.warning{background:var(--amber-dim);border:1px solid rgba(255,179,0,.25);color:var(--amber)}
+
+/* FOOTER */
+footer{text-align:center;padding:16px 28px;border-top:1px solid var(--border);font-size:10px;color:var(--text-muted);letter-spacing:.5px}
+
+@media(max-width:768px){
+  .form-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .content{padding:16px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-box">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="1" y="7" width="3" height="8" rx="1" fill="#00e5ff"/>
+        <rect x="6" y="4" width="3" height="11" rx="1" fill="#00e5ff" opacity=".7"/>
+        <rect x="11" y="1" width="3" height="14" rx="1" fill="#00e5ff" opacity=".4"/>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <div class="title">TrafficMind AI</div>
+      <div class="sub">Admin Panel</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="role-badge admin">ADMIN</span>
+    <a href="/" class="btn btn-ghost">← Dashboard</a>
+    <a href="{{ url_for('auth.logout') }}" class="btn btn-red btn-sm">Logout</a>
+  </div>
+</header>
+
+<!-- CONTENT -->
+<div class="content">
+  <div class="page-title">User Management</div>
+  <div class="page-sub">Registered accounts in the system &middot; {{ users|length }} user{{ 's' if users|length != 1 else '' }}</div>
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flashes">
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">
+            {% if category == 'success' %}✓{% elif category == 'error' %}⚠{% else %}ℹ{% endif %}
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- User list -->
+  <div class="panel">
+    <div class="ph">
+      <div class="pt"><div class="pt-dot"></div>Registered Users</div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted)">{{ users|length }} total</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Username</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Created At</th>
+          <th>Last Login</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>#{{ u.id }}</td>
+          <td>
+            <span class="user-name">{{ u.username }}</span>
+            {% if u.id == current_user.id %}
+              <span class="pill active" style="margin-left:6px;font-size:8px">YOU</span>
+            {% endif %}
+          </td>
+          <td><span class="pill {{ u.role }}">{{ u.role.upper() }}</span></td>
+          <td>
+            {% if u.is_active %}
+              <span class="pill active">ACTIVE</span>
+            {% else %}
+              <span class="pill inactive">INACTIVE</span>
+            {% endif %}
+          </td>
+          <td>{{ u.created_at or '—' }}</td>
+          <td>{{ u.last_login or 'Never' }}</td>
+          <td>
+            <div class="actions">
+              {% if u.id != current_user.id %}
+                <!-- Toggle active/inactive -->
+                <form method="POST" action="{{ url_for('auth.admin_toggle_user', user_id=u.id) }}" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-ghost btn-sm" title="{{ 'Deactivate' if u.is_active else 'Activate' }}">
+                    {{ '⏸' if u.is_active else '▶' }}
+                  </button>
+                </form>
+                <!-- Delete -->
+                <form method="POST" action="{{ url_for('auth.admin_delete_user', user_id=u.id) }}" style="display:inline"
+                      onsubmit="return confirm('Delete account {{ u.username }}? This action is irreversible.')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-red btn-sm" title="Delete">🗑</button>
+                </form>
+              {% else %}
+                <span style="font-size:10px;color:var(--text-muted)">your account</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">No registered users.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Create new user -->
+  <div class="panel">
+    <div class="ph">
+      <div class="pt">Create New Account</div>
+    </div>
+    <div class="create-form">
+      <form method="POST" action="{{ url_for('auth.admin_create_user') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Username</label>
+            <input type="text" name="username" placeholder="e.g. operator1" required minlength="2" maxlength="80">
+          </div>
+          <div class="form-field">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="Min. 6 characters" required minlength="6">
+          </div>
+          <div class="form-field">
+            <label>Role</label>
+            <select name="role">
+              <option value="user">Observer (user)</option>
+              <option value="admin">Administrator</option>
+            </select>
+          </div>
+          <div class="form-field" style="grid-column:span 1">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn btn-cyan" style="width:100%;justify-content:center">+ Create</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Role explanation -->
+  <div class="panel">
+    <div class="ph"><div class="pt">Role Permissions</div></div>
+    <div style="padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div style="font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--purple);text-transform:uppercase;margin-bottom:10px">ADMIN</div>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:6px">
+          <li style="font-size:11px;color:var(--text-dim)">&#10003; Full access to all pages</li>
+          <li style="font-size:11px;color:var(--text-dim)">&#10003; RL Optimizer &amp; Database tabs</li>
+          <li style="font-size:11px;color:var(--text-dim)">&#10003; Export CSV / JSON data</li>
+          <li style="font-size:11px;color:var(--text-dim)">&#10003; Modify system settings</li>
+          <li style="font-size:11px;color:var(--text-dim)">&#10003; Manage user accounts</li>
+        </ul>
+      </div>
+      <div>
+        <div style="font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--cyan);text-transform:uppercase;margin-bottom:10px">OBSERVER (user)</div>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:6px">
+          <li style="font-size:11px;color:var(--text-dim)">&#10003; Dashboard (live monitor)</li>
+          <li style="font-size:11px;color:var(--text-dim)">&#10003; Analytics &amp; AI Alerts</li>
+          <li style="font-size:11px;color:var(--text-dim)">&#10007; RL Optimizer tab</li>
+          <li style="font-size:11px;color:var(--text-dim)">&#10007; Database tab</li>
+          <li style="font-size:11px;color:var(--text-dim)">&#10007; Export data / modify settings</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>TrafficMind AI &mdash; Admin Panel &mdash; &copy; 2026</footer>
+</div>
+</body>
+</html>

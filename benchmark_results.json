@@ -1,0 +1,23 @@
+{
+  "low": {
+    "rl_avg_wait": 228.8,
+    "fixed_avg_wait": 2956.3,
+    "rl_avg_throughput": 352.9,
+    "fixed_avg_throughput": 345.7,
+    "wait_improvement_pct": 92.3
+  },
+  "medium": {
+    "rl_avg_wait": 490.9,
+    "fixed_avg_wait": 5681.2,
+    "rl_avg_throughput": 602.7,
+    "fixed_avg_throughput": 588.9,
+    "wait_improvement_pct": 91.4
+  },
+  "peak": {
+    "rl_avg_wait": 1184.7,
+    "fixed_avg_wait": 12300.2,
+    "rl_avg_throughput": 1000.5,
+    "fixed_avg_throughput": 975.8,
+    "wait_improvement_pct": 90.4
+  }
+}
