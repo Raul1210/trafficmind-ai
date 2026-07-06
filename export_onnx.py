@@ -16,9 +16,9 @@ import shutil
 import sys
 from pathlib import Path
 
-# Workspace root: two levels above this script (where model .pt files live)
+# Workspace root: this script's own directory (project root — model files live here)
 SCRIPT_DIR    = Path(__file__).parent
-WORKSPACE_DIR = SCRIPT_DIR.parent.parent
+WORKSPACE_DIR = SCRIPT_DIR
 SMALL_PT      = WORKSPACE_DIR / "yolov8s.pt"
 SMALL_ONNX    = WORKSPACE_DIR / "yolov8s.onnx"
 

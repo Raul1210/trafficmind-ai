@@ -16,7 +16,7 @@ YOLO_MODEL_PATH = os.path.join(ROOT_DIR, 'yolo26m.pt')
 DATABASE_PATH = os.path.join(BASE_DIR, 'traffic_logs.db')
 
 # Video source (path to video file)
-VIDEO_SOURCE_PATH = os.path.join(ROOT_DIR, 'traffic.mp4')
+VIDEO_SOURCE_PATH = os.path.join(BASE_DIR, 'data', 'intersectie_romana.mp4')
 #VIDEO_SOURCE_PATH = "58&mt=1773589281&fvip=2&fexp=51565116%2C51565682%2C51791334&c=ANDROID_VR&txp=5309224&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cpcm2%2Cbui%2Cspc%2Cvprv%2Csvpuc%2Cmime%2Crqh%2Ccnr%2Cratebypass%2Cdur%2Clmt&sig=AHEqNM4wRQIgIyu3mkLi6WG1fVlnuGVqs7uWjTO-npDaB0454q8KnKoCIQDpURcLUF-vlTmaphLj2-HqMZP493Ub5rQ5jrmKo2Kd1Q%3D%3D&lsparams=cps%2Cmet%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRQIgb-bnPeJboee753YmcgKdaT-hmbvaXog0Mv2dxXm7iRwCIQCV4Jr6Bsp2gCRNSk9Ixy-9Z0YpgfbuTcYSF1Jh64nyTA%3D%3D"
 #YOUTUBE_LIVE_URL = "https://www.youtube.com/watch?v=3wI4xzieiy4"
 #USE_YOUTUBE_LIVE = True

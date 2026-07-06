@@ -309,7 +309,7 @@ class VideoCaptureWorker(threading.Thread):
                 url = _get_youtube_stream_url(src)
                 if url:
                     return url
-                fallback = str(self._cfg.project_dir / "traffic.mp4")
+                fallback = str(self._cfg.project_dir / "data" / "intersectie_romana.mp4")
                 logger.error(f"Could not get YouTube URL, falling back to {fallback}")
                 return fallback
             return src

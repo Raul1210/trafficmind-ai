@@ -18,8 +18,7 @@ from typing import Dict
 # Directory anchors (resolved at import time — never changes at runtime)
 # ---------------------------------------------------------------------------
 _PKG_DIR: Path = Path(__file__).parent          # traffic_monitor/
-_PROJECT_DIR: Path = _PKG_DIR.parent            # project root (where run.py lives)
-_WORKSPACE_DIR: Path = _PROJECT_DIR.parent.parent  # where model/video files live
+_PROJECT_DIR: Path = _PKG_DIR.parent            # project root (where run.py, model files, etc. all live)
 
 
 class Settings:
@@ -36,18 +35,18 @@ class Settings:
 
         # ── File paths ────────────────────────────────────────────────────
         self.yolo_model_path: Path = Path(
-            os.getenv("YOLO_MODEL_PATH", str(_WORKSPACE_DIR / "yolov8m.pt"))
+            os.getenv("YOLO_MODEL_PATH", str(_PROJECT_DIR / "yolov8m.pt"))
         )
         # Optimized ONNX model (small, imgsz=480) — preferred over .pt when present.
         # Generate with: python export_onnx.py
         self.yolo_small_onnx_path: Path = Path(
-            os.getenv("YOLO_SMALL_ONNX_PATH", str(_WORKSPACE_DIR / "yolov8s.onnx"))
+            os.getenv("YOLO_SMALL_ONNX_PATH", str(_PROJECT_DIR / "yolov8s.onnx"))
         )
         self.database_path: Path = Path(
             os.getenv("DATABASE_PATH", str(_PROJECT_DIR / "traffic_logs.db"))
         )
         self.video_source: str = os.getenv(
-            "VIDEO_SOURCE_PATH", str(_WORKSPACE_DIR / "traffic.mp4")
+            "VIDEO_SOURCE_PATH", str(_PROJECT_DIR / "data" / "intersectie_romana.mp4")
         )
         self.q_table_path: Path = Path(
             os.getenv("Q_TABLE_PATH", str(_PROJECT_DIR / "q_table_medium_final.json"))

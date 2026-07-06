@@ -36,3 +36,5 @@ q_table_*ep*.json
 # OS
 .DS_Store
 Thumbs.db
+
+_cleanup_review/
